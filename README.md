@@ -21,15 +21,18 @@ Holistic Composer has the following software prerequisites:
 ## Running
 
 **Server Side**
+
 ```./core```
 
 **Client**
+
 ```./client```
 
 * There are a few VNF Packages in the [example](example) directory that can be used as *VNF Package* in Client Application.
 * Generic VNF Packages were tested using [Xenial Ubuntu Cloud Images](https://cloud-images.ubuntu.com/xenial/)
 
 *PS: Use relative path on informing the VNF Package directory location.*
+
 *PSS: Click functions are just hypothetical examples.*
 
 ## Built With
