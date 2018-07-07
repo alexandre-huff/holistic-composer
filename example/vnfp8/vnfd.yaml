@@ -1,0 +1,82 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Ubuntu Forwarder Template
+
+metadata:
+  template_name: ubuntu-forwarder-vnfd
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      capabilities:
+        nfv_compute:
+          properties:
+            num_cpus: 1
+            mem_size: 256 MB
+            disk_size: 10 GB
+      properties:
+        image: ubuntu-server
+        availability_zone: nova
+        mgmt_driver: noop
+        name: linux-forwarder
+        key_name: alexandre_at_gtfende
+        user_data_format: RAW
+        user_data: |
+          #!/bin/sh
+          sed -i -e 's/\ localhost/\ localhost\ linux-forwarder/' /etc/hosts
+          cat <<EOF >> /etc/network/interfaces.d/50-cloud-init.cfg
+              post-up route del default dev \$IFACE
+
+          auto ens4
+          iface ens4 inet dhcp
+          EOF
+          systemctl restart networking.service
+          /bin/echo 1 > /proc/sys/net/ipv4/ip_forward
+          cat <<EOF > /etc/sysctl.d/60-local-forwarder.conf
+          #Huff
+          net.ipv4.ip_forward=1
+          EOF
+
+    CP81:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        order: 0
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL81
+        - virtualBinding:
+            node: VDU1
+
+    CP82:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        order: 1
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL82
+        - virtualBinding:
+            node: VDU1
+
+    VL81:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net_mgmt
+        vendor: Tacker
+
+    VL82:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net0
+        vendor: Tacker
+
+#    FIP82:
+#      type: tosca.nodes.network.FloatingIP
+#      properties:
+#        floating_network: public
+#      requirements:
+#        - link:
+#          node: CP82

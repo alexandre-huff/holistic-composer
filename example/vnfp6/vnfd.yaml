@@ -1,0 +1,77 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Ubuntu Client Template
+
+metadata:
+  template_name: ubuntu-client-vnfd
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+      capabilities:
+        nfv_compute:
+          properties:
+            num_cpus: 1
+            mem_size: 256 MB
+            disk_size: 10 GB
+      properties:
+        image: ubuntu-server
+        availability_zone: nova
+        mgmt_driver: noop
+        name: linux-client
+        key_name: alexandre_at_gtfende
+        user_data_format: RAW
+        user_data: |
+          #!/bin/sh
+          sed -i -e 's/\ localhost/\ localhost\ linux-client/' /etc/hosts
+          cat <<EOF >> /etc/network/interfaces.d/50-cloud-init.cfg
+              post-up route del default dev \$IFACE
+
+          auto ens4
+          iface ens4 inet dhcp
+          EOF
+          systemctl restart networking.service
+
+    CP61:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        management: true
+        order: 0
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL61
+        - virtualBinding:
+            node: VDU1
+
+    CP62:
+      type: tosca.nodes.nfv.CP.Tacker
+      properties:
+        order: 1
+        anti_spoofing_protection: false
+      requirements:
+        - virtualLink:
+            node: VL62
+        - virtualBinding:
+            node: VDU1
+
+    VL61:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net_mgmt
+        vendor: Tacker
+
+    VL62:
+      type: tosca.nodes.nfv.VL
+      properties:
+        network_name: net0
+        vendor: Tacker
+
+#    FIP61:
+#      type: tosca.nodes.network.FloatingIP
+#      properties:
+#        floating_network: public
+#      requirements:
+#        - link:
+#          node: CP62
